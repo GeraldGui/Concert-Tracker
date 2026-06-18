@@ -50,7 +50,7 @@ public class ConcertTrackerRunner implements CommandLineRunner {
 
             switch (scanner.nextInt()) {
                 case 1 -> concertsMenu(scanner);
-                case 2 -> System.out.println("Coming in Phase 3.");
+                case 2 -> searchConcertsMenu(scanner);
                 case 3 -> artistsMenu(scanner);
                 case 4 -> venuesMenu(scanner);
                 case 5 -> promotersMenu(scanner);
@@ -111,7 +111,7 @@ public class ConcertTrackerRunner implements CommandLineRunner {
             Concert concert = concertService.findByIdOrThrow(id);
             printConcert(concert);
             System.out.println("Promoter: " + concert.getPromoter().getName());
-        } catch (NotFoundException e) {
+        } catch (NoClassDefFoundError e) {
             System.out.println(e.getMessage());
         }
     }
@@ -143,7 +143,7 @@ public class ConcertTrackerRunner implements CommandLineRunner {
 
             concertService.addConcert(year, price, ticketsSold, artistId, venueId, promoterId);
             System.out.println("Added concert!");
-        } catch (NotFoundException | InvalidInputException e) {
+        } catch (NoClassDefFoundError | InvalidInputException e) {
             System.out.println(e.getMessage());
         }
     }
@@ -183,6 +183,93 @@ public class ConcertTrackerRunner implements CommandLineRunner {
         } catch (NotFoundException e) {
             System.out.println(e.getMessage());
         }
+    }
+
+    // ================= SEARCH CONCERTS =================
+
+    private void searchConcertsMenu(Scanner scanner) {
+        boolean inMenu = true;
+        while (inMenu) {
+            System.out.println("\n--- Search Concerts ---");
+            System.out.println("1) By year");
+            System.out.println("2) By artist");
+            System.out.println("3) By venue");
+            System.out.println("4) By city");
+            System.out.println("5) By maximum price");
+            System.out.println("6) By price range");
+            System.out.println("7) Advanced (max price + earliest year)");
+            System.out.println("0) Back");
+            System.out.print("Your Choice: ");
+
+            switch (scanner.nextInt()) {
+                case 1 -> searchByYear(scanner);
+                case 2 -> searchByArtist(scanner);
+                case 3 -> searchByVenue(scanner);
+                case 4 -> searchByCity(scanner);
+                case 5 -> searchByMaxPrice(scanner);
+                case 6 -> searchByPriceRange(scanner);
+                case 7 -> searchAdvanced(scanner);
+                case 0 -> inMenu = false;
+                default -> System.out.println("Wrong Input!");
+            }
+        }
+    }
+
+    private void printSearchResults(List<Concert> results) {
+        if (results.isEmpty()) {
+            System.out.println("No concerts matched.");
+            return;
+        }
+        results.forEach(this::printConcert);
+    }
+
+    private void searchByYear(Scanner scanner) {
+        System.out.print("Year: ");
+        int year = scanner.nextInt();
+        printSearchResults(concertService.byYear(year));
+    }
+
+    private void searchByArtist(Scanner scanner) {
+        scanner.nextLine();
+        System.out.print("Artist name contains: ");
+        String name = scanner.nextLine();
+        printSearchResults(concertService.byArtistName(name));
+    }
+
+    private void searchByVenue(Scanner scanner) {
+        scanner.nextLine();
+        System.out.print("Venue name contains: ");
+        String name = scanner.nextLine();
+        printSearchResults(concertService.byVenueName(name));
+    }
+
+    private void searchByCity(Scanner scanner) {
+        scanner.nextLine();
+        System.out.print("City: ");
+        String city = scanner.nextLine();
+        printSearchResults(concertService.byCity(city));
+    }
+
+    private void searchByMaxPrice(Scanner scanner) {
+        System.out.print("Maximum price: ");
+        double maxPrice = scanner.nextDouble();
+        printSearchResults(concertService.byMaxPrice(maxPrice));
+    }
+
+    private void searchByPriceRange(Scanner scanner) {
+        System.out.print("Minimum price: ");
+        double minPrice = scanner.nextDouble();
+        System.out.print("Maximum price: ");
+        double maxPrice = scanner.nextDouble();
+        printSearchResults(concertService.byPriceRange(minPrice, maxPrice));
+    }
+
+    private void searchAdvanced(Scanner scanner) {
+        System.out.print("Maximum price: ");
+        double maxPrice = scanner.nextDouble();
+        System.out.print("Earliest year: ");
+        int earliestYear = scanner.nextInt();
+        printSearchResults(concertService.search(maxPrice, earliestYear));
     }
 
     // ================= VENUES =================

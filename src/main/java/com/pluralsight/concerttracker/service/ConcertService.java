@@ -96,6 +96,34 @@ public class ConcertService {
         return concertRepository.count() == 0;
     }
 
+    public List<Concert> byYear(int year) {
+        return concertRepository.findByYear(year);
+    }
+
+    public List<Concert> byArtistName(String name) {
+        return concertRepository.findByArtistNameContaining(name);
+    }
+
+    public List<Concert> byVenueName(String name) {
+        return concertRepository.findByVenueNameContaining(name);
+    }
+
+    public List<Concert> byCity(String city) {
+        return concertRepository.findByVenueCity(city);
+    }
+
+    public List<Concert> byMaxPrice(double maxPrice) {
+        return concertRepository.findByMaxPrice(maxPrice);
+    }
+
+    public List<Concert> byPriceRange(double minPrice, double maxPrice) {
+        return concertRepository.findByPriceRange(minPrice, maxPrice);
+    }
+
+    public List<Concert> search(double maxPrice, int earliestYear) {
+        return concertRepository.search(maxPrice, earliestYear);
+    }
+
     public void seedIfEmpty() {
         if (concertRepository.count() > 0) {
             return;
