@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class ConcertService {
@@ -31,19 +30,65 @@ public class ConcertService {
         this.promoterRepository = promoterRepository;
     }
 
-    public Concert save(Concert concert) {
-        return concertRepository.save(concert);
-    }
-
     public List<Concert> findAll() {
         return concertRepository.findAll();
     }
 
-    public Optional<Concert> findById(Long id) {
-        return concertRepository.findById(id);
+    public Concert findByIdOrThrow(long id) {
+        return concertRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("No concert with id " + id));
     }
 
-    public void deleteById(Long id) {
+    public Concert addConcert(int year, double ticketPrice, int ticketsSold,
+                              long artistId, long venueId, long promoterId) {
+        if (ticketPrice < 0) {
+            throw new InvalidInputException("Ticket price cannot be negative.");
+        }
+        if (ticketsSold < 0) {
+            throw new InvalidInputException("Tickets sold cannot be negative.");
+        }
+
+        Artist artist = artistRepository.findById(artistId)
+                .orElseThrow(() -> new NotFoundException("No artist with id " + artistId));
+        Venue venue = venueRepository.findById(venueId)
+                .orElseThrow(() -> new NotFoundException("No venue with id " + venueId));
+        Promoter promoter = promoterRepository.findById(promoterId)
+                .orElseThrow(() -> new NotFoundException("No promoter with id " + promoterId));
+
+        if (ticketsSold > venue.getCapacity()) {
+            throw new InvalidInputException("Tickets sold (" + ticketsSold
+                    + ") cannot exceed venue capacity (" + venue.getCapacity() + ").");
+        }
+
+        return concertRepository.save(new Concert(year, ticketPrice, ticketsSold, artist, venue, promoter));
+    }
+
+    public Concert updatePrice(long id, double newPrice) {
+        if (newPrice < 0) {
+            throw new InvalidInputException("Ticket price cannot be negative.");
+        }
+        Concert concert = findByIdOrThrow(id);
+        concert.setTicketPrice(newPrice);
+        return concertRepository.save(concert);
+    }
+
+    public Concert updateTicketsSold(long id, int newTicketsSold) {
+        if (newTicketsSold < 0) {
+            throw new InvalidInputException("Tickets sold cannot be negative.");
+        }
+        Concert concert = findByIdOrThrow(id);
+        if (newTicketsSold > concert.getVenue().getCapacity()) {
+            throw new InvalidInputException("Tickets sold (" + newTicketsSold
+                    + ") cannot exceed venue capacity (" + concert.getVenue().getCapacity() + ").");
+        }
+        concert.setTicketsSold(newTicketsSold);
+        return concertRepository.save(concert);
+    }
+
+    public void deleteConcert(long id) {
+        if (!concertRepository.existsById(id)) {
+            throw new NotFoundException("No concert with id " + id);
+        }
         concertRepository.deleteById(id);
     }
 

@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class PromoterService {
@@ -18,20 +17,28 @@ public class PromoterService {
         this.promoterRepository = promoterRepository;
     }
 
-    public Promoter save(Promoter promoter) {
-        return promoterRepository.save(promoter);
-    }
-
     public List<Promoter> findAll() {
         return promoterRepository.findAll();
     }
 
-    public Optional<Promoter> findById(Long id) {
-        return promoterRepository.findById(id);
+    public Promoter findByIdOrThrow(long id) {
+        return promoterRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("No promoter with id " + id));
     }
 
-    public void deleteById(Long id) {
+    public Promoter addPromoter(String name) {
+        return promoterRepository.save(new Promoter(name));
+    }
+
+    public void deletePromoter(long id) {
+        if (!promoterRepository.existsById(id)) {
+            throw new NotFoundException("No promoter with id " + id);
+        }
         promoterRepository.deleteById(id);
+    }
+
+    public List<Promoter> byName(String name) {
+        return promoterRepository.findByNameContainingIgnoreCase(name);
     }
 
     public boolean isEmpty() {

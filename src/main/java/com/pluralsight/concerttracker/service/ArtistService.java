@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class ArtistService {
@@ -18,20 +17,38 @@ public class ArtistService {
         this.artistRepository = artistRepository;
     }
 
-    public Artist save(Artist artist) {
-        return artistRepository.save(artist);
-    }
-
     public List<Artist> findAll() {
         return artistRepository.findAll();
     }
 
-    public Optional<Artist> findById(Long id) {
-        return artistRepository.findById(id);
+    public Artist findByIdOrThrow(long id) {
+        return artistRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("No artist with id " + id));
     }
 
-    public void deleteById(Long id) {
+    public Artist addArtist(String name, String genre) {
+        return artistRepository.save(new Artist(name, genre));
+    }
+
+    public Artist updateGenre(long id, String newGenre) {
+        Artist artist = findByIdOrThrow(id);
+        artist.setGenre(newGenre);
+        return artistRepository.save(artist);
+    }
+
+    public void deleteArtist(long id) {
+        if (!artistRepository.existsById(id)) {
+            throw new NotFoundException("No artist with id " + id);
+        }
         artistRepository.deleteById(id);
+    }
+
+    public List<Artist> byGenre(String genre) {
+        return artistRepository.findByGenreIgnoreCase(genre);
+    }
+
+    public List<Artist> byName(String name) {
+        return artistRepository.findByNameContainingIgnoreCase(name);
     }
 
     public boolean isEmpty() {
