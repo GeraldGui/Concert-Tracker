@@ -8,10 +8,15 @@ import com.pluralsight.concerttracker.model.Artist;
 import com.pluralsight.concerttracker.model.Concert;
 import com.pluralsight.concerttracker.model.Promoter;
 import com.pluralsight.concerttracker.model.Venue;
+import com.pluralsight.concerttracker.report.ArtistConcertCount;
+import com.pluralsight.concerttracker.report.VenueConcertCount;
+import com.pluralsight.concerttracker.report.VenueRevenue;
+import com.pluralsight.concerttracker.report.YearlyAveragePrice;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ConcertService {
@@ -122,6 +127,24 @@ public class ConcertService {
 
     public List<Concert> search(double maxPrice, int earliestYear) {
         return concertRepository.search(maxPrice, earliestYear);
+    }
+
+    public List<VenueRevenue> revenuePerVenue() {
+        return concertRepository.revenuePerVenue();
+    }
+
+    public Optional<VenueConcertCount> busiestVenue() {
+        List<VenueConcertCount> results = concertRepository.venueConcertCounts();
+        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+    }
+
+    public Optional<ArtistConcertCount> busiestArtist() {
+        List<ArtistConcertCount> results = concertRepository.artistConcertCounts();
+        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+    }
+
+    public List<YearlyAveragePrice> averagePriceByYear() {
+        return concertRepository.averagePriceByYear();
     }
 
     public void seedIfEmpty() {

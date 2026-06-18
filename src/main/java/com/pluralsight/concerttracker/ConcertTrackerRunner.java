@@ -4,6 +4,10 @@ import com.pluralsight.concerttracker.model.Artist;
 import com.pluralsight.concerttracker.model.Concert;
 import com.pluralsight.concerttracker.model.Promoter;
 import com.pluralsight.concerttracker.model.Venue;
+import com.pluralsight.concerttracker.report.ArtistConcertCount;
+import com.pluralsight.concerttracker.report.VenueConcertCount;
+import com.pluralsight.concerttracker.report.VenueRevenue;
+import com.pluralsight.concerttracker.report.YearlyAveragePrice;
 import com.pluralsight.concerttracker.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -11,6 +15,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Scanner;
 
 @Component
@@ -54,7 +59,7 @@ public class ConcertTrackerRunner implements CommandLineRunner {
                 case 3 -> artistsMenu(scanner);
                 case 4 -> venuesMenu(scanner);
                 case 5 -> promotersMenu(scanner);
-                case 6 -> System.out.println("Coming in Phase 4.");
+                case 6 -> reportsMenu(scanner);
                 case 0 -> running = false;
                 default -> System.out.println("Wrong Input!");
             }
@@ -111,7 +116,7 @@ public class ConcertTrackerRunner implements CommandLineRunner {
             Concert concert = concertService.findByIdOrThrow(id);
             printConcert(concert);
             System.out.println("Promoter: " + concert.getPromoter().getName());
-        } catch (NoClassDefFoundError e) {
+        } catch (NotFoundException e) {
             System.out.println(e.getMessage());
         }
     }
@@ -143,7 +148,7 @@ public class ConcertTrackerRunner implements CommandLineRunner {
 
             concertService.addConcert(year, price, ticketsSold, artistId, venueId, promoterId);
             System.out.println("Added concert!");
-        } catch (NoClassDefFoundError | InvalidInputException e) {
+        } catch (NotFoundException | InvalidInputException e) {
             System.out.println(e.getMessage());
         }
     }
@@ -562,5 +567,86 @@ public class ConcertTrackerRunner implements CommandLineRunner {
             return;
         }
         results.forEach(this::printPromoter);
+    }
+
+    // ================= REPORTS =================
+
+    private void reportsMenu(Scanner scanner) {
+        boolean inMenu = true;
+        while (inMenu) {
+            System.out.println("\n--- Reports ---");
+            System.out.println("1) Revenue per venue");
+            System.out.println("2) Busiest venue & artist");
+            System.out.println("3) Average ticket price by year");
+            System.out.println("4) Capacity report");
+            System.out.println("0) Back");
+            System.out.print("Your Choice: ");
+
+            switch (scanner.nextInt()) {
+                case 1 -> revenuePerVenueReport();
+                case 2 -> busiestVenueAndArtistReport();
+                case 3 -> averagePriceByYearReport();
+                case 4 -> capacityReport();
+                case 0 -> inMenu = false;
+                default -> System.out.println("Wrong Input!");
+            }
+        }
+    }
+
+    private void revenuePerVenueReport() {
+        List<VenueRevenue> results = concertService.revenuePerVenue();
+        if (results.isEmpty()) {
+            System.out.println("No revenue data to show.");
+            return;
+        }
+        System.out.println("\n-- Revenue Per Venue --");
+        for (VenueRevenue r : results) {
+            System.out.printf("%-30s $%,.2f%n", r.venueName(), r.totalRevenue());
+        }
+    }
+
+    private void busiestVenueAndArtistReport() {
+        Optional<VenueConcertCount> venue = concertService.busiestVenue();
+        Optional<ArtistConcertCount> artist = concertService.busiestArtist();
+
+        if (venue.isEmpty() && artist.isEmpty()) {
+            System.out.println("No data to show.");
+            return;
+        }
+
+        System.out.println("\n-- Busiest Venue & Artist --");
+        venue.ifPresentOrElse(
+                v -> System.out.printf("Busiest venue: %s (%d concerts)%n", v.venueName(), v.concertCount()),
+                () -> System.out.println("Busiest venue: no data."));
+        artist.ifPresentOrElse(
+                a -> System.out.printf("Busiest artist: %s (%d concerts)%n", a.artistName(), a.concertCount()),
+                () -> System.out.println("Busiest artist: no data."));
+    }
+
+    private void averagePriceByYearReport() {
+        List<YearlyAveragePrice> results = concertService.averagePriceByYear();
+        if (results.isEmpty()) {
+            System.out.println("No pricing data to show.");
+            return;
+        }
+        System.out.println("\n-- Average Ticket Price By Year --");
+        for (YearlyAveragePrice r : results) {
+            System.out.printf("%d: $%.2f%n", r.year(), r.averagePrice());
+        }
+    }
+
+    private void capacityReport() {
+        List<Concert> concerts = concertService.findAll();
+        if (concerts.isEmpty()) {
+            System.out.println("No concerts to show.");
+            return;
+        }
+        System.out.println("\n-- Capacity Report --");
+        for (Concert c : concerts) {
+            double percentFull = (c.getTicketsSold() / (double) c.getVenue().getCapacity()) * 100;
+            String soldOutFlag = (c.getTicketsSold() >= c.getVenue().getCapacity()) ? " SOLD OUT" : "";
+            System.out.printf("ID %d | %s at %s | %.1f%% full%s%n",
+                    c.getId(), c.getArtist().getName(), c.getVenue().getName(), percentFull, soldOutFlag);
+        }
     }
 }
